@@ -1,0 +1,25 @@
+{
+  "name": "apollo-bot",
+  "version": "1.0.0",
+  "description": "Team Rocket Chat Bot",
+  "main": "bot.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node bot.js"
+  },
+  "keywords": [
+    "slack",
+    "bot",
+    "aws",
+    "rocket"
+  ],
+  "author": "colin johnson",
+  "license": "ISC",
+  "dependencies": {
+    "aws-sdk": "^2.2.29",
+    "bluebird": "^3.1.1",
+    "botkit": "0.0.5",
+    "harmony-proxy": "^0.1.0",
+    "lodash": "^4.0.0"
+  }
+}
