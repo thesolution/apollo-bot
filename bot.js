@@ -4,29 +4,59 @@ if (!process.env.TOKEN) {
     process.exit(1);
 }
 
-var Botkit = require('Botkit');
-var os = require('os');
 var manageUsers = require('./manageUsers.js');
 var aws = require('./aws.js');
 var Promise = require("bluebird");
-
-var controller = Botkit.slackbot({
+var BotkitAsync = Promise.promisifyAll(require('Botkit'));
+var os = require('os');
+var bluebirdOptions = { 
+  multiArgs: true, 
+  promisifier: function(originalMethod, defaultPromisifer) {
+    // var promisified = defaultPromisifer(originalMethod);
+    //console.log(originalMethod.toString());
+   return function() {
+        var args = [].slice.call(arguments);
+        var self = this;
+        return new Promise(function(resolve, reject) {
+          args.push(function(){
+            //console.log(Object.values(arguments));
+            resolve(Object.keys(arguments).map(key => arguments[key]));
+          });
+          var emitter = originalMethod.apply(self, args);
+          return emitter;
+        });
+    };
+  }
+};
+var controller = Promise.promisifyAll(BotkitAsync.slackbot({
     debug: false,
     json_file_store: "./store"
-});
+}), bluebirdOptions);
 
-var bot = controller.spawn({
+var botAsync = Promise.promisifyAll(controller.spawn({
     token: process.env.TOKEN
-}).startRTM();
+}).startRTM(), bluebirdOptions);
 
-var c = Promise.promisifyAll(controller);
+var usersAsync = Promise.promisifyAll(controller.storage.users);
 console.log('hello');
-if(c) {
-var eee = aws.getEC2(c, {channel:"A"}, false);
-}
 
 // register modules
 manageUsers.init(controller);
+controller.hearsAsync(['hey'],'direct_message')
+.spread(function(bots, message){
+  //  console.log(bots);
+  //  console.log(message);
+  // console.log("it worked")
+  return Promise.all([Promise.props({bots:bots, message:message, user:usersAsync.getAsync(message.user)})]);
+})
+.spread(function(bots) {
+  console.log(Object.keys(bots));
+  console.log(bots.user);
+})
+.catch(function(err){
+  console.log(err);
+  console.log("there was a problem");
+});
 controller.hears(['hello','hi'],'direct_message,direct_mention,mention',function(bot, message) {
 
     bot.api.reactions.add({
